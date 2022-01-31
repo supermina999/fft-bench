@@ -29,28 +29,35 @@ fn fft(a: &mut Vec<Complex64>, invert: bool) {
         let j = rev_bits(i, logn);
         if i < j {
             let tmp = a[i];
-            a[j] = a[i];
-            a[i] = tmp;
+            a[i] = a[j];
+            a[j] = tmp;
         }
     }
+
+    let mut ws: Vec<Complex64> = Vec::new();
 
     for step in 1..logn {
         let len = 1 << step;
 
         let mut angle = 2.0 * PI / len as f64;
-        if invert {
+        if !invert {
             angle = -angle;
         }
 
+        ws.clear();
+        ws.reserve(len / 2);
+        ws.push(Complex64::new(1.0, 0.0));
         let wn = Complex64::new(angle.cos(), angle.sin());
+        for i in 0..len/2-1 {
+            ws.push(ws[i] * wn);
+        }
+
         for i in (0..n).step_by(len) {
-            let mut w = Complex64::new(1.0, 0.0);
             for j in 0..len/2 {
                 let u = a[i + j];
-                let v = a[i + j + len / 2] * w;
+                let v = a[i + j + len / 2] * ws[j];
                 a[i + j] = u + v;
                 a[i + j + len / 2] = u - v;
-                w *= wn;
             }
         }
     }
@@ -61,6 +68,36 @@ fn fft(a: &mut Vec<Complex64>, invert: bool) {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use num::complex::Complex64;
+    use crate::fft;
+
+    #[test]
+    fn test() {
+        let n = 8;
+        let mut data: Vec<Complex64> = Vec::with_capacity(n);
+        for i in 1..n+1 {
+            data.push(Complex64::new(i as f64, 0.0));
+        }
+        fft(&mut data, false);
+        let expected = vec![
+            Complex64::new(36.0, 0.0),
+            Complex64::new(-4.0, 9.656854),
+            Complex64::new(-4.0, 4.0),
+            Complex64::new(-4.0, 1.656854),
+            Complex64::new(-4.0, 0.0),
+            Complex64::new(-4.0, -1.656854),
+            Complex64::new(-4.0, -4.0),
+            Complex64::new(-4.0, -9.656854),
+        ];
+        let eps = 0.0001;
+        for i in 0..n {
+            assert!(data[i].re + eps > expected[i].re && data[i].re - eps < expected[i].re);
+            assert!(data[i].im + eps > expected[i].im && data[i].im - eps < expected[i].im);
+        }
+    }
+}
 
 fn main() {
     let n = 1024 * 1024;

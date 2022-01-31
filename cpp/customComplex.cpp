@@ -29,7 +29,7 @@ int revBits(int a, int log) {
     for(int i = 0; i < log - 1; i++) {
         res *= 2;
         res += a & 1;
-        res /= 2;
+        a /= 2;
     }
     return res;
 }
@@ -57,7 +57,7 @@ void fft(std::vector<Complex>& a, bool invert) {
         int len = 1 << step;
 
         double angle = 2.0 * M_PI / len;
-        if(invert) {
+        if(!invert) {
             angle = -angle;
         }
 
@@ -77,6 +77,33 @@ void fft(std::vector<Complex>& a, bool invert) {
     if(invert) {
         for(int i = 0; i < n; i++) {
             a[i] /= n;
+        }
+    }
+}
+
+void test() {
+    constexpr int n = 8;
+    std::vector<Complex> data;
+    data.reserve(n);
+    for(int i = 1; i <= n; i++) {
+        data.emplace_back(i, 0.0);
+    }
+    fft(data, false);
+    std::vector<Complex> expected = {
+        {36, 0},
+        {-4,9.656854},
+        {-4, 4},
+        {-4,1.656854},
+        {-4, 0},
+        {-4,-1.656854},
+        {-4, -4},
+        {-4,-9.656854}
+    };
+    double EPS = 0.0001;
+    for(int i = 0; i < n; i++) {
+        if(data[i].re + EPS < expected[i].re || data[i].re - EPS > expected[i].re
+            || data[i].im + EPS < expected[i].im || data[i].im - EPS > expected[i].im) {
+            std::terminate();
         }
     }
 }
