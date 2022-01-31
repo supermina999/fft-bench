@@ -90,7 +90,6 @@ void test() {
 }
 
 int main() {
-    test();
     int n = 1024 * 1024;
     int m = 10;
     int iters = 100;
